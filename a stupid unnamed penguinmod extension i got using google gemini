@@ -1,0 +1,156 @@
+(function(Scratch) {
+  'use strict';
+
+  class EditorRotator {
+    constructor() {
+      this.rotationX = 0;
+      this.rotationY = 0;
+      this.rotationZ = 0;
+      this.perspective = 1000;
+      this.scale = 100;
+      this.transitionTime = 0.5;
+      
+      // Cleanup when extension is unloaded
+      this.runtime = Scratch.vm.runtime;
+    }
+
+    getInfo() {
+      return {
+        id: 'editorrotator',
+        name: 'Editor 3D',
+        color1: '#ff4d4d',
+        color2: '#e60000',
+        blocks: [
+          {
+            opcode: 'setRotation',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'rotate editor x: [X] y: [Y] z: [Z]',
+            arguments: {
+              X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+              Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+              Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
+            }
+          },
+          {
+            opcode: 'changeRotation',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'spin editor x: [X] y: [Y] z: [Z]',
+            arguments: {
+              X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 10 },
+              Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+              Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
+            }
+          },
+          '---',
+          {
+            opcode: 'setPerspective',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'set 3d depth (perspective) to [VAL]',
+            arguments: {
+              VAL: { type: Scratch.ArgumentType.NUMBER, defaultValue: 1000 }
+            }
+          },
+          {
+            opcode: 'setScale',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'set editor scale to [VAL]%',
+            arguments: {
+              VAL: { type: Scratch.ArgumentType.NUMBER, defaultValue: 80 }
+            }
+          },
+          {
+            opcode: 'setTransition',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'set animation speed to [VAL] seconds',
+            arguments: {
+              VAL: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0.5 }
+            }
+          },
+          '---',
+          {
+            opcode: 'reset',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'reset editor view'
+          }
+        ]
+      };
+    }
+
+    _updateStyle() {
+      // We target document.body to rotate the entire UI
+      const target = document.body;
+      if (!target) return;
+
+      // If we are resetting to 0, clear the styles so everything is crisp again
+      if (this.rotationX === 0 && this.rotationY === 0 && this.rotationZ === 0 && this.scale === 100) {
+        target.style.transform = '';
+        target.style.transformStyle = '';
+        target.style.transition = '';
+        target.style.perspective = '';
+        target.style.overflow = '';
+        target.style.height = '';
+        return;
+      }
+
+      // Apply 3D styles
+      target.style.transition = `transform ${this.transitionTime}s ease-out`;
+      target.style.transformOrigin = 'center center';
+      target.style.transformStyle = 'preserve-3d';
+      
+      // We set height to 100vh to ensure the rotation pivot is centered on screen
+      target.style.height = '100vh'; 
+      target.style.overflow = 'hidden'; // Prevents scrollbars from going crazy during rotation
+
+      target.style.transform = `
+        perspective(${this.perspective}px)
+        scale(${this.scale / 100})
+        rotateX(${this.rotationX}deg)
+        rotateY(${this.rotationY}deg)
+        rotateZ(${this.rotationZ}deg)
+      `;
+    }
+
+    setRotation(args) {
+      this.rotationX = Scratch.Cast.toNumber(args.X);
+      this.rotationY = Scratch.Cast.toNumber(args.Y);
+      this.rotationZ = Scratch.Cast.toNumber(args.Z);
+      this._updateStyle();
+    }
+
+    changeRotation(args) {
+      this.rotationX += Scratch.Cast.toNumber(args.X);
+      this.rotationY += Scratch.Cast.toNumber(args.Y);
+      this.rotationZ += Scratch.Cast.toNumber(args.Z);
+      this._updateStyle();
+    }
+
+    setPerspective(args) {
+      this.perspective = Scratch.Cast.toNumber(args.VAL);
+      // Prevent perspective from being 0 or negative as it breaks CSS 3D
+      if (this.perspective < 10) this.perspective = 10;
+      this._updateStyle();
+    }
+    
+    setScale(args) {
+      this.scale = Scratch.Cast.toNumber(args.VAL);
+      this._updateStyle();
+    }
+
+    setTransition(args) {
+      this.transitionTime = Scratch.Cast.toNumber(args.VAL);
+      this._updateStyle();
+    }
+
+    reset() {
+      this.rotationX = 0;
+      this.rotationY = 0;
+      this.rotationZ = 0;
+      this.perspective = 1000;
+      this.scale = 100;
+      this.transitionTime = 0.5;
+      this._updateStyle();
+    }
+  }
+
+  Scratch.extensions.register(new EditorRotator());
+})(Scratch);
